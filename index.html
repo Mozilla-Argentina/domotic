@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset=utf-8 />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <title>Mozilla iOT</title>
+    <link rel="apple-touch-icon" type="image/png" sizes="180x180" href="https://www.mozilla.org/media/img/favicon/apple-touch-icon-180x180.00050c5b754e.png">
+    <link rel="icon" type="image/png" sizes="196x196" href="https://www.mozilla.org/media/img/favicon/favicon-196x196.cb79ae3b6daf.png">
+    <link rel="shortcut icon" href="https://www.mozilla.org/media/img/favicon.52506929be4c.ico">
+    <style type="text/css">
+    html {
+        background-color: #c13832;
+    }
+
+    body {
+        margin: 15px auto;
+        font-family: sans-serif;
+        font-size: 16px;
+        line-height: 1.5em;
+        color: #666;
+    }
+
+    .header-wrapper {}
+
+    .header {
+        padding-left: 0px;
+        font-weight: normal;
+        font-size: 28px;
+        color: #00AEFF;
+        background-color: #c13832;
+        background-image: url('https://www.mozilla.org/media/img/home/voices/mozilla-wordmark-white-high-res.d0ee651720b6.png');
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        padding-bottom: 15px;
+        height: 130px;
+        width: 300px;
+        margin: auto;
+        text-align: center;
+    }
+
+    .containers-wrapper {
+        width: 300px;
+        margin: auto;
+    }
+
+    .btn {
+        padding: 10px;
+        font-size: 22px;
+        width: 270px;
+        color: #00AEFF;
+        margin-bottom: 20px;
+    }
+
+    .container {
+        background-color: #f7f7f7;
+        padding: 0 10px 0 10px;
+        border: 1px dotted #CCC;
+        width: 270px;
+        margin-top: 20px;
+    }
+    </style>
+    <!-- The following (socket.io.js) is only required when using the node_server -->
+    <!-- <script src="../../socket.io/socket.io.js"></script> -->
+    <!-- <script src="../dist/Breakout.min.js"></script> -->
+    <script src="http://labs.fgilio.com/breakout/Breakout.min.js"></script>
+    <!-- <script src="../examples/libs/fastclick.min.js"></script> -->
+    <script src="http://labs.fgilio.com/breakout/fastclick.min.js"></script>
+    <!-- <script scr="https://cdnjs.cloudflare.com/ajax/libs/fastclick/1.0.6/fastclick.js"></script> -->
+    <!-- <script scr="https://cdnjs.cloudflare.com/ajax/libs/fastclick/0.6.11/fastclick.js"></script> -->
+    <!-- <script src="../examples/libs/jquery.min.js"></script> -->
+    <script src="https://code.jquery.com/jquery-2.2.3.min.js"></script>
+    <!-- <script src="annyang.min.js"></script> -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/annyang/2.3.0/annyang.min.js"></script>
+    <!-- <script src='https://cdn.firebase.com/js/client/2.2.1/firebase.js'> -->
+    <script type="text/javascript">
+    // var storage = document.localStorage;
+    // var myFirebaseRef = new Firebase('https://blistering-inferno-7399.firebaseio.com');
+    window.onload = function() {
+
+        // Declare these variables so you don't have
+        // to type the full namespace
+        var IOBoard = BO.IOBoard;
+        var IOBoardEvent = BO.IOBoardEvent;
+        var LED = BO.io.LED;
+        var Button = BO.io.Button;
+        var ButtonEvent = BO.io.ButtonEvent;
+
+        // If you are not serving this file from the same computer
+        // that the Arduino board is connected to, replace
+        // window.location.hostname with the IP address or hostname
+        // of the computer that the Arduino board is connected to.
+        var host = window.location.hostname;
+        // if the file is opened locally, set the host to "localhost"
+        if (window.location.protocol.indexOf('file:') === 0) {
+            host = 'localhost';
+        }
+
+        // attach fastclick to avoid 300ms click delay on mobile devices
+        FastClick.attach(document.body);
+
+        var arduino = new IOBoard(host, 8887);
+
+        // Variables
+        var fan;
+        var pushButton;
+        var $state = $('#state');
+        // Create an LED object to interface with the LED wired
+        // to the I/O board
+        var ledsPins = [9, 10, 11, 12, 13];
+        var leds = [];
+
+        // Listen for the IOBoard READY event which indicates the IOBoard
+        // is ready to send and receive data
+        arduino.addEventListener(IOBoardEvent.READY, onReady);
+
+        function onReady(event) {
+            // Remove the event listener because it is no longer needed
+            arduino.removeEventListener(IOBoardEvent.READY, onReady);
+
+            fan = new LED(arduino, arduino.getDigitalPin(8));
+            // Create a new Button object to interface with the physical
+            // pushButton wired to the I/O board
+            pushButton = new Button(arduino, arduino.getDigitalPin(2));
+
+            // Listen for pushButton press and release events
+            pushButton.addEventListener(ButtonEvent.PRESS, fanOn);
+            pushButton.addEventListener(ButtonEvent.RELEASE, fanOff);
+
+
+            // var ledsStatus = storage.getItem('ledsStatus') ? storage.getItem('ledsStatus') : [];
+            // var ledsStatus = {
+            //     ledStatus: {
+
+            //     }
+            // };
+            ledsPins.forEach(function(element, index) {
+                leds[index] = new LED(arduino, arduino.getDigitalPin(element));
+
+                // leds[index].off();
+                // ledsStatus[]
+
+                // console.log('isOn = ', leds[index].isOn());
+
+                var btnText = 'Turn <span class="action">On</span> LED on pin ' + element;
+                // var btnText = ledsStatus[element] ? 'Turn LED Off' : 'Turn LED On';
+
+                $('.container.ledsBts').append('<button class="btn" type="button" data-led="' + index + '" data-led-pin="' + element + '">' + btnText + '</button>');
+            });
+
+            $('.btn').on('click', function() {
+                var btn = $(this);
+                var index = btn.data('led');
+                var ledPin = btn.data('ledPin');
+
+                leds[index].toggle();
+
+                if (leds[index].isOn()) {
+                    // ledsStatus.ledStatus[''+ledPin] = true;
+                    btn.find('.action').text('Off');
+                } else {
+                    // ledsStatus.ledStatus[''+ledPin] = false;
+                    btn.find('.action').text('On');
+                }
+                // console.log('ledsStatus', ledsStatus);
+                // myFirebaseRef.set(ledsStatus);
+            });
+
+
+            // myFirebaseRef.child("ledsStatus").on("value", function(snapshot) {
+            //   // alert(snapshot.val());  // Alerts "San Francisco"
+            //   ledsStatus = snapshot.val();
+            // });
+
+            $('.container.fan').append('<button class="btn fan" type="button">Ventilador <span class="action">On</span>!</button>');
+
+            $('.btn.fan').on('click', function() {
+                var btn = $(this);
+
+                fan.toggle();
+
+                if (fan.isOn()) {
+                    // ledsStatus.ledStatus[''+ledPin] = true;
+                    btn.find('.action').text('Off');
+                    $state.html("Ventilador Off");
+                } else {
+                    // ledsStatus.ledStatus[''+ledPin] = false;
+                    btn.find('.action').text('On');
+                    $state.html("Ventilador On");
+                }
+                // console.log('ledsStatus', ledsStatus);
+                // myFirebaseRef.set(ledsStatus);
+            });
+        }
+
+        function fanOn() {
+            $state.html("Ventilador On");
+            $('.btn.fan .action').text('On');
+            fan.on();
+        }
+
+        function fanOff() {
+            $state.html("Ventilador Off");
+            $('.btn.fan .action').text('Off');
+            fan.off();
+        }
+
+        var ledSTOP = false;
+
+        function ledToggleStop() {
+            ledSTOP = true;
+        }
+
+        function ledsOff() {
+            leds.forEach(function(element, index) {
+                leds[index].off();
+            });
+        }
+
+        function ledToggle(timeout) {
+            if (ledSTOP) {
+                return;
+            }
+            leds[0].toggle();
+            setTimeout(function() {
+                leds[1].toggle();
+                setTimeout(function() {
+                    leds[2].toggle();
+                    setTimeout(function() {
+                        leds[3].toggle();
+                        setTimeout(function() {
+                            leds[4].toggle();
+                            ledToggle(150);
+                        }, timeout);
+                    }, timeout);
+                }, timeout);
+            }, timeout);
+        }
+
+        if (annyang) {
+            // Let's define our first command. First the text we expect, and then the function it should call
+            var commands = {
+                'hello': function() {
+                    console.log('hello');
+                    ledToggle(350);
+                    // ledToggle(150);
+                    // leds.forEach(function(element, index) {
+                    //     ledToggle(index, 350)
+                    // });
+                    // leds.forEach(function(element, index) {
+                    //     setTimeout(function(){
+                    //         leds[index].toggle();
+                    //     }, 500);
+                    // });
+                },
+                'mozilla': function() {
+                    console.log('hello');
+                    ledToggle(350);
+                    // ledToggle(150);
+                    // leds.forEach(function(element, index) {
+                    //     ledToggle(index, 350)
+                    // });
+                    // leds.forEach(function(element, index) {
+                    //     setTimeout(function(){
+                    //         leds[index].toggle();
+                    //     }, 500);
+                    // });
+                },
+                'stop': function() {
+                    console.log('stop');
+                    ledToggleStop();
+                },
+                'turn leds off': function() {
+                    console.log('turn leds off');
+                    ledsOff();
+                },
+                'hot': function() {
+                    console.log('hot');
+                    fanOn();
+                },
+                'cold': function() {
+                    console.log('cold');
+                    fan.off();
+                }
+            };
+
+            // Add our commands to annyang
+            annyang.addCommands(commands);
+
+            // Start listening. You can call this here, or attach this call to an event, button, etc.
+            annyang.start();
+        }
+
+    };
+    </script>
+</head>
+
+<body>
+    <div class="header-wrapper">
+        <h2 class="header"></h2>
+    </div>
+    <div class="containers-wrapper">
+        <div class="container ledsBts">
+            <p><strong>Leds</strong></p>
+        </div>
+        <div class="container fan">
+            <p><strong>Ventilador</strong></p>
+            <p id="state">Ventilador</p>
+        </div>
+    </div>
+</body>
+
+</html>​
