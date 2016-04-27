@@ -11,8 +11,11 @@ This project makes use of:
 * A carefully handcrafted model to put everything on
 * Breakoutjs: https://github.com/soundanalogous/Breakout
 
-The fun part here is that we are using JavaScript, which is a language well known by web developers, to interact with Arduino. This proyect serves as a fundation to what can be done in the field of IoT, Domotic and Home Automation.
-Also keep in mind that this was done with very little resources, and can be easily replicated and further developed. The later which we strongly encourage.
+This proyect had focus on showing what's feasible in the field of IoT, Domotic and Home Automation. But more importantly, it serves as a fundation to what can be done in those fields.
+Also keep in mind that this was done with very little resources on purpose, so that it can be easily replicated and further developed. The later which we strongly encourage.
+
+The fun part here is that we are using JavaScript, which is a language well known by web developers, to interact with Arduino.
+
 
 
 ![alt tag](http://labs.fgilio.com/mozilla/domotic/pic1.jpg)
